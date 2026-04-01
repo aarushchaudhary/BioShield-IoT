@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.biometric import TriggerEnrollmentRequest
+from app.schemas.biometric import TriggerEnrollmentRequest, TriggerVerifyRequest
 from app.redis_client import get_redis
 from app.dependencies.rbac import require_admin
 from app.schemas.biometric import BiometricResponse
@@ -28,4 +28,24 @@ def trigger_enrollment(body: TriggerEnrollmentRequest):
         )
     except Exception as e:
         logger.error(f"Failed to trigger enrollment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/trigger-verification", response_model=BiometricResponse)
+def trigger_verification(body: TriggerVerifyRequest):
+    """
+    Allows the dashboard admin to remotely trigger the verification (login) flow on the IoT device.
+    """
+    try:
+        r = get_redis()
+        # Set a key in Redis that the device will poll
+        trigger_key = f"trigger_verify:{body.device_id}"
+        r.setex(trigger_key, 60, str(body.user_id))
+        
+        return BiometricResponse(
+            status="success",
+            message=f"Verification triggered on device {body.device_id}. Listening for fingerprint.",
+            biohash=None
+        )
+    except Exception as e:
+        logger.error(f"Failed to trigger verification: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

@@ -10,6 +10,22 @@ from app.dependencies.rbac import require_security_officer
 
 router = APIRouter(prefix="/audit", tags=["Audit"], dependencies=[Depends(require_security_officer)])
 
+@router.get("/latest")
+def get_latest_audit_logs(limit: int = 5, db: Session = Depends(get_db)):
+    """Used by the frontend dashboard to poll for live device activity."""
+    logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
+    
+    return [
+        {
+            "id": str(log.id),
+            "user_id": str(log.user_id),
+            "action": log.action.name,
+            "success": log.success,
+            "match_score": float(log.match_score) if log.match_score else None,
+            "timestamp": log.created_at.isoformat()
+        } for log in logs
+    ]
+
 @router.get("/", response_model=AuditListResponse)
 def get_audit_logs(
     action: Optional[AuditAction] = Query(None, description="Filter by action type"),

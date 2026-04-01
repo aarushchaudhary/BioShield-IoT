@@ -18,6 +18,7 @@ from app.schemas.biometric import EnrollRequest, VerifyRequest, CancelRequest, B
 from app.dependencies.rbac import require_user
 from app.middleware.auth import get_current_user
 from app.services.audit import log_event
+from app.services.biohash import generate_transformation_matrix, compute_biohash, hamming_distance, is_match
 
 logger = logging.getLogger(__name__)
 
@@ -41,20 +42,6 @@ def decrypt_key(encrypted_key_b64: str) -> bytes:
     cipher = AES.new(master_key, AES.MODE_GCM, nonce=nonce)
     return cipher.decrypt_and_verify(ciphertext, tag)
 
-def compute_biohash(feature_vector: list[float], key: bytes) -> str:
-    # Use first 4 bytes of key as an integer seed (0 to 2^32 - 1)
-    seed = int.from_bytes(key[:4], "little")
-    rng = np.random.RandomState(seed)
-    n = len(feature_vector)
-    matrix = rng.randn(n, n)
-    projected = np.dot(feature_vector, matrix)
-    return "".join(["1" if val > 0 else "0" for val in projected])
-
-def hamming_distance(s1: str, s2: str) -> float:
-    if len(s1) != len(s2) or len(s1) == 0:
-        return 1.0
-    diffs = sum(c1 != c2 for c1, c2 in zip(s1, s2))
-    return float(diffs) / len(s1)
 
 
 @router.post("/enroll", response_model=BiometricResponse)
@@ -84,7 +71,8 @@ def enroll(
         # Cryptography
         key = os.urandom(32)
         encrypted_b64 = encrypt_key(key)
-        biohash = compute_biohash(body.feature_vector, key)
+        matrix = generate_transformation_matrix(key, len(body.feature_vector), 512)
+        biohash = compute_biohash(body.feature_vector, matrix)
 
         # Database transaction
         kv = KeyVault(user_id=body.user_id, encrypted_key=encrypted_b64)
@@ -150,18 +138,19 @@ def verify(
             raise ValueError("Key vault reference missing")
 
         key = decrypt_key(kv.encrypted_key)
-        new_hash = compute_biohash(body.feature_vector, key)
+        matrix = generate_transformation_matrix(key, len(body.feature_vector), 512)
+        new_hash = compute_biohash(body.feature_vector, matrix)
 
-        score = hamming_distance(t.biohash, new_hash)
-        is_match = score <= 0.25
+        _, score = hamming_distance(t.biohash, new_hash)
+        match_status = is_match(t.biohash, new_hash, threshold=0.35)
 
-        log_event(db, body.user_id, AuditAction.verify, is_match, ip, match_score=score)
+        log_event(db, body.user_id, AuditAction.verify, match_status, ip, match_score=score)
 
         return VerifyResponse(
-            status="success" if is_match else "failure",
-            message="Match successful" if is_match else "Match failed",
+            status="success" if match_status else "failure",
+            message="Match successful" if match_status else "Match failed",
             match_score=score,
-            is_match=is_match
+            is_match=match_status
         )
     except ValueError as e:
         log_event(db, body.user_id, AuditAction.verify, False, ip, error_message=str(e))

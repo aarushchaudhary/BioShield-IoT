@@ -6,6 +6,10 @@ class TriggerEnrollmentRequest(BaseModel):
     user_id: uuid.UUID = Field(..., description="User ID to enroll")
     device_id: str = Field(..., description="Target IoT device ID")
 
+class TriggerVerifyRequest(BaseModel):
+    user_id: uuid.UUID = Field(..., description="User ID to verify")
+    device_id: str = Field(..., description="Target IoT device ID")
+
 class EnrollRequest(BaseModel):
     user_id: uuid.UUID
     feature_vector: List[float] = Field(..., min_length=1, description="Raw biometric feature vector")
