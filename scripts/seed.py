@@ -33,7 +33,7 @@ def seed_db():
         
         # Insert admin user
         admin = User(
-            email="admin@bioshield.local",
+            email="admin@bioshield.io",
             hashed_password=hash_password("admin123"),
             role=UserRole.admin,
             is_active=True
@@ -42,7 +42,7 @@ def seed_db():
         
         # Insert security officer
         security = User(
-            email="security@bioshield.local",
+            email="security@bioshield.io",
             hashed_password=hash_password("security123"),
             role=UserRole.security_officer,
             is_active=True
@@ -51,7 +51,7 @@ def seed_db():
         
         # Insert standard user
         user1 = User(
-            email="user@bioshield.local",
+            email="user@bioshield.io",
             hashed_password=hash_password("user123"),
             role=UserRole.user,
             is_active=True
