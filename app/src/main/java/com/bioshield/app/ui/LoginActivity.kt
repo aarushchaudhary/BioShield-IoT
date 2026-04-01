@@ -20,20 +20,17 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnLogin.setOnClickListener {
+            var ipAddress = binding.etIpAddress.text.toString().trim()
+            if (ipAddress.isEmpty()) {
+                ipAddress = "http://10.0.2.2:8000/"
+            }
+            com.bioshield.app.network.RetrofitClient.updateBaseUrl(ipAddress)
+            
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
 
             if (email.isEmpty() || password.isEmpty()) {
                 Snackbar.make(binding.root, "Please fill in all fields", Snackbar.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            // ⚡ TEMP BYPASS — remove when backend is ready
-            if (email == "demo@bioshield.com" && password == "hackathon2026") {
-                viewModel.token = "test-token"
-                viewModel.userId = email
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
                 return@setOnClickListener
             }
 

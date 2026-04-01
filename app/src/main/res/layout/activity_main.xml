@@ -16,9 +16,20 @@
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="#00E5FF"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="16dp"/>
+
+    <!-- Smart Lock LED -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/ledIndicator"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        app:cardCornerRadius="12dp"
+        app:cardBackgroundColor="#888888"
+        app:layout_constraintTop_toTopOf="@id/tvHeader"
+        app:layout_constraintBottom_toBottomOf="@id/tvHeader"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp" />
 
     <!-- Status Card -->
     <androidx.cardview.widget.CardView

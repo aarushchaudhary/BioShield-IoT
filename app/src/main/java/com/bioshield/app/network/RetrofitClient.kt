@@ -4,15 +4,18 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
+    private var retrofit: Retrofit? = null
+    var api: ApiService? = null
 
-    // ⚠️ Update this when backend dev shares EC2 IP
-    private const val BASE_URL = "http://YOUR_EC2_IP:8000/"
-
-    val api: ApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
+    fun updateBaseUrl(newUrl: String) {
+        // Ensure URL ends with a trailing slash
+        val safeUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+        
+        retrofit = Retrofit.Builder()
+            .baseUrl(safeUrl)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(ApiService::class.java)
+            
+        api = retrofit?.create(ApiService::class.java)
     }
 }

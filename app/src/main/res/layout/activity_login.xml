@@ -34,6 +34,29 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="8dp"/>
 
+    <!-- IP Address -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilIpAddress"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Backend Server URL"
+        app:boxStrokeColor="#00E5FF"
+        app:hintTextColor="#00E5FF"
+        app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="48dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etIpAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textUri"
+            android:text="http://10.0.2.2:8000/"
+            android:textColor="#FFFFFF"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
     <!-- Email -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilEmail"
@@ -43,10 +66,10 @@
         android:hint="Email"
         app:boxStrokeColor="#00E5FF"
         app:hintTextColor="#00E5FF"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
+        app:layout_constraintTop_toBottomOf="@id/tilIpAddress"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="48dp">
+        android:layout_marginTop="16dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etEmail"

@@ -7,10 +7,8 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import com.bioshield.app.BioHasher
 import com.bioshield.app.BmpGenerator
 import com.bioshield.app.FingerprintHelper
-import com.bioshield.app.KeyVault
 import com.bioshield.app.databinding.ActivityMainBinding
 import com.bioshield.app.viewmodel.BioShieldViewModel
 import com.google.android.material.snackbar.Snackbar
@@ -55,9 +53,13 @@ class MainActivity : AppCompatActivity() {
         viewModel.verifyResult.observe(this) { result ->
             showLoading(false)
             result.onSuccess { response ->
+                val color = if (response.success) android.R.color.holo_green_light else android.R.color.holo_red_light
+                binding.ledIndicator.setCardBackgroundColor(ContextCompat.getColor(this, color))
+
                 navigateToResult(response.success, response.message, response.matchScore)
             }
             result.onFailure { error ->
+                binding.ledIndicator.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
                 navigateToResult(false, error.message ?: "Verify failed", null)
             }
         }
@@ -111,13 +113,11 @@ class MainActivity : AppCompatActivity() {
     private fun performEnroll() {
         showLoading(true)
         try {
-            val bioHash = FingerprintHelper.extractAndHash(
+            val featureVector = FingerprintHelper.extractMinutiae(
                 context = this,
-                filename = "101_1.bmp",
-                userId = viewModel.userId,
-                isEnrolling = true
+                filename = "101_1.bmp"
             )
-            viewModel.enroll(bioHash)
+            viewModel.enroll(featureVector)
         } catch (e: Exception) {
             showLoading(false)
             Snackbar.make(binding.root, "Error: ${e.message}",
@@ -128,13 +128,11 @@ class MainActivity : AppCompatActivity() {
     private fun performVerify() {
         showLoading(true)
         try {
-            val bioHash = FingerprintHelper.extractAndHash(
+            val featureVector = FingerprintHelper.extractMinutiae(
                 context = this,
-                filename = "101_2.bmp",
-                userId = viewModel.userId,
-                isEnrolling = false
+                filename = "101_2.bmp"
             )
-            viewModel.verify(bioHash)
+            viewModel.verify(featureVector)
         } catch (e: Exception) {
             showLoading(false)
             Snackbar.make(binding.root, "Error: ${e.message}",
@@ -144,13 +142,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun performCancel() {
         showLoading(true)
-        KeyVault.cancelKey(this, viewModel.userId)
         viewModel.cancel()
     }
 
     private fun updateStatus() {
-        val enrolled = KeyVault.isEnrolled(this, viewModel.userId)
-        if (enrolled) {
+        if (viewModel.isEnrolled) {
             binding.tvStatus.text = "● Enrolled"
             binding.tvStatus.setTextColor(
                 ContextCompat.getColor(this, android.R.color.holo_green_light)

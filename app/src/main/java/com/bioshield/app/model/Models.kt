@@ -13,8 +13,8 @@ data class LoginResponse(
 
 // Enroll
 data class EnrollRequest(
-    val userId: String,
-    val featureVector: String
+    @com.google.gson.annotations.SerializedName("user_id") val userId: String,
+    @com.google.gson.annotations.SerializedName("feature_vector") val featureVector: List<Float>
 )
 
 data class EnrollResponse(
@@ -24,8 +24,8 @@ data class EnrollResponse(
 
 // Verify
 data class VerifyRequest(
-    val userId: String,
-    val featureVector: String
+    @com.google.gson.annotations.SerializedName("user_id") val userId: String,
+    @com.google.gson.annotations.SerializedName("feature_vector") val featureVector: List<Float>
 )
 
 data class VerifyResponse(

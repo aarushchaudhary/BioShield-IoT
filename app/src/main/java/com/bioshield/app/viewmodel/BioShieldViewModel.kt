@@ -29,7 +29,7 @@ class BioShieldViewModel : ViewModel() {
     fun login(email: String, password: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api.login(LoginRequest(email, password))
+                val response = RetrofitClient.api!!.login(LoginRequest(email, password))
                 if (response.isSuccessful && response.body() != null) {
                     token = response.body()!!.token
                     userId = email
@@ -48,7 +48,7 @@ class BioShieldViewModel : ViewModel() {
     fun enroll(featureVector: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api.enroll(
+                val response = RetrofitClient.api!!.enroll(
                     "Bearer $token",
                     EnrollRequest(userId, featureVector)
                 )
@@ -61,10 +61,7 @@ class BioShieldViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                // Backend not connected yet — show demo result
-                _enrollResult.value = Result.success(
-                    EnrollResponse(true, "Template enrolled successfully!")
-                )
+                _enrollResult.value = Result.failure(e)
             }
         }
     }
@@ -72,7 +69,7 @@ class BioShieldViewModel : ViewModel() {
     fun verify(featureVector: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api.verify(
+                val response = RetrofitClient.api!!.verify(
                     "Bearer $token",
                     VerifyRequest(userId, featureVector)
                 )
@@ -84,10 +81,7 @@ class BioShieldViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                // Backend not connected yet — show demo result
-                _verifyResult.value = Result.success(
-                    VerifyResponse(true, "Identity verified!", 0.94f)
-                )
+                _verifyResult.value = Result.failure(e)
             }
         }
     }
@@ -95,7 +89,7 @@ class BioShieldViewModel : ViewModel() {
     fun cancel() {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api.cancel(
+                val response = RetrofitClient.api!!.cancel(
                     "Bearer $token",
                     CancelRequest(userId)
                 )
@@ -108,11 +102,7 @@ class BioShieldViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                // Backend not connected yet — show demo result
-                isEnrolled = false
-                _cancelResult.value = Result.success(
-                    CancelResponse(true, "Template cancelled successfully!")
-                )
+                _cancelResult.value = Result.failure(e)
             }
         }
     }
