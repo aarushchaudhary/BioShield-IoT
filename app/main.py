@@ -8,7 +8,7 @@ from sqlalchemy.sql import text
 from app.config import settings
 from app.database import get_db, SessionLocal
 from app.redis_client import get_redis
-from app.routers import auth, biometric, users, audit, stats
+from app.routers import auth, biometric, users, audit, stats, device
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,6 +62,7 @@ app.include_router(biometric.router)
 app.include_router(users.router)
 app.include_router(audit.router)
 app.include_router(stats.router)
+app.include_router(device.router)
 
 @app.get("/health", tags=["Health"])
 def health_check():

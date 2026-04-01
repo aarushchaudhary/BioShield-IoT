@@ -101,8 +101,20 @@ def enroll(
         db.add(tmpl)
         db.commit()
 
+        # Cache original minutiae for dashboard visualization securely for a limited time (1 hour)
+        r = get_redis()
+        try:
+            import json
+            r.setex(f"visualize:{body.user_id}", 3600, json.dumps(body.feature_vector))
+        except Exception as e:
+            logger.warning(f"Failed to cache visualization data: {e}")
+
         log_event(db, body.user_id, AuditAction.enroll, True, ip)
-        return BiometricResponse(status="success", message="Biometric template registered successfully")
+        return BiometricResponse(
+            status="success", 
+            message="Biometric template registered successfully",
+            biohash=biohash
+        )
     except ValueError as e:
         log_event(db, body.user_id, AuditAction.enroll, False, ip, error_message=str(e))
         raise HTTPException(status_code=400, detail=str(e))

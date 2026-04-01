@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 import uuid
+
+class TriggerEnrollmentRequest(BaseModel):
+    user_id: uuid.UUID = Field(..., description="User ID to enroll")
+    device_id: str = Field(..., description="Target IoT device ID")
 
 class EnrollRequest(BaseModel):
     user_id: uuid.UUID
@@ -16,6 +20,7 @@ class CancelRequest(BaseModel):
 class BiometricResponse(BaseModel):
     message: str
     status: str
+    biohash: Optional[str] = None
 
 class VerifyResponse(BiometricResponse):
     match_score: float = Field(..., description="Hamming distance score of the match")

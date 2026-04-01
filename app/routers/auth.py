@@ -13,7 +13,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.models.audit_log import AuditLog, AuditAction
+from app.models.template import Template, TemplateStatus
 from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.user import UserResponse
 from app.services.auth import verify_password, create_access_token
 from app.middleware.auth import get_current_user
 from app.redis_client import get_redis
@@ -90,6 +92,32 @@ def login(
         access_token=token,
         expires_in=ttl_seconds,
     )
+
+
+# ── GET /auth/me ─────────────────────────────────────────────────────
+
+@router.get("/me", response_model=UserResponse)
+def get_me(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Return the currently authenticated user's profile."""
+    user_id = current_user.get("user_id")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+        
+    active_t = db.query(Template).filter(
+        Template.user_id == user.id, 
+        Template.status == TemplateStatus.active
+    ).first()
+    
+    user_data = UserResponse.model_validate(user)
+    user_data.has_active_template = bool(active_t)
+    return user_data
 
 
 # ── POST /auth/logout ────────────────────────────────────────────────
