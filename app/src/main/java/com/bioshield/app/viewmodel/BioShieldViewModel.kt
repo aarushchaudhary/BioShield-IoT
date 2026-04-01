@@ -28,6 +28,11 @@ class BioShieldViewModel : ViewModel() {
     private val _cancelResult = MutableLiveData<Result<BiometricResponse>>()
     val cancelResult: LiveData<Result<BiometricResponse>> = _cancelResult
 
+    init {
+        // Set up the token provider for the interceptor
+        RetrofitClient.setTokenProvider { token }
+    }
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             try {
@@ -40,6 +45,8 @@ class BioShieldViewModel : ViewModel() {
                     val body = response.body()!!
                     token = body.token
                     userId = body.userId.orEmpty()
+                    // Update the token provider so subsequent requests use the new token
+                    RetrofitClient.setTokenProvider { token }
                     _loginResult.postValue(Result.success(body))
                 } else {
                     _loginResult.postValue(
@@ -60,7 +67,6 @@ class BioShieldViewModel : ViewModel() {
                         Result.failure(Exception("API not configured"))
                     )
                 val response = api.enroll(
-                    "Bearer $token",
                     EnrollRequest(userId, featureVector)
                 )
                 if (response.isSuccessful && response.body() != null) {
@@ -86,7 +92,6 @@ class BioShieldViewModel : ViewModel() {
                         Result.failure(Exception("API not configured"))
                     )
                 val response = api.verify(
-                    "Bearer $token",
                     VerifyRequest(userId, featureVector)
                 )
                 if (response.isSuccessful && response.body() != null) {
@@ -110,7 +115,6 @@ class BioShieldViewModel : ViewModel() {
                         Result.failure(Exception("API not configured"))
                     )
                 val response = api.cancel(
-                    "Bearer $token",
                     CancelRequest(userId)
                 )
                 if (response.isSuccessful && response.body() != null) {
