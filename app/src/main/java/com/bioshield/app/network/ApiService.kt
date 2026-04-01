@@ -13,19 +13,19 @@ interface ApiService {
         @Body request: LoginRequest
     ): Response<LoginResponse>
 
-    @POST("enroll")
+    @POST("biometric/enroll")
     suspend fun enroll(
         @Header("Authorization") token: String,
         @Body request: EnrollRequest
     ): Response<EnrollResponse>
 
-    @POST("verify")
+    @POST("biometric/verify")
     suspend fun verify(
         @Header("Authorization") token: String,
         @Body request: VerifyRequest
     ): Response<VerifyResponse>
 
-    @POST("cancel")
+    @POST("biometric/cancel")
     suspend fun cancel(
         @Header("Authorization") token: String,
         @Body request: CancelRequest

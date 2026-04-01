@@ -8,7 +8,8 @@ data class LoginRequest(
 )
 
 data class LoginResponse(
-    val token: String
+    @com.google.gson.annotations.SerializedName("access_token") val token: String,
+    @com.google.gson.annotations.SerializedName("user_id") val userId: String?
 )
 
 // Enroll

@@ -32,7 +32,7 @@ class BioShieldViewModel : ViewModel() {
                 val response = RetrofitClient.api!!.login(LoginRequest(email, password))
                 if (response.isSuccessful && response.body() != null) {
                     token = response.body()!!.token
-                    userId = email
+                    userId = response.body()!!.userId ?: email
                     _loginResult.value = Result.success(response.body()!!)
                 } else {
                     _loginResult.value = Result.failure(
