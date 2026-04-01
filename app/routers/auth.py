@@ -91,6 +91,7 @@ def login(
     return TokenResponse(
         access_token=token,
         expires_in=ttl_seconds,
+        user_id=str(user.id)
     )
 
 
