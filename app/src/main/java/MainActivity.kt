@@ -23,6 +23,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        intent.getStringExtra(LoginActivity.EXTRA_ACCESS_TOKEN)?.let { viewModel.token = it }
+        intent.getStringExtra(LoginActivity.EXTRA_USER_ID)?.let { viewModel.userId = it }
+
         binding.tvUserId.text = "User: ${viewModel.userId}"
         updateStatus()
 
@@ -41,9 +44,9 @@ class MainActivity : AppCompatActivity() {
         viewModel.enrollResult.observe(this) { result ->
             showLoading(false)
             result.onSuccess { response ->
-                viewModel.isEnrolled = response.success
+                viewModel.isEnrolled = response.status == "success"
                 updateStatus()
-                navigateToResult(response.success, response.message, null)
+                navigateToResult(response.status == "success", response.message, null)
             }
             result.onFailure { error ->
                 navigateToResult(false, error.message ?: "Enroll failed", null)
@@ -53,10 +56,10 @@ class MainActivity : AppCompatActivity() {
         viewModel.verifyResult.observe(this) { result ->
             showLoading(false)
             result.onSuccess { response ->
-                val color = if (response.success) android.R.color.holo_green_light else android.R.color.holo_red_light
+                val color = if (response.isMatch) android.R.color.holo_green_light else android.R.color.holo_red_light
                 binding.ledIndicator.setCardBackgroundColor(ContextCompat.getColor(this, color))
 
-                navigateToResult(response.success, response.message, response.matchScore)
+                navigateToResult(response.isMatch, response.message, response.matchScore)
             }
             result.onFailure { error ->
                 binding.ledIndicator.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
@@ -67,9 +70,9 @@ class MainActivity : AppCompatActivity() {
         viewModel.cancelResult.observe(this) { result ->
             showLoading(false)
             result.onSuccess { response ->
-                if (response.success) viewModel.isEnrolled = false
+                if (response.status == "success") viewModel.isEnrolled = false
                 updateStatus()
-                navigateToResult(response.success, response.message, null)
+                navigateToResult(response.status == "success", response.message, null)
             }
             result.onFailure { error ->
                 navigateToResult(false, error.message ?: "Cancel failed", null)

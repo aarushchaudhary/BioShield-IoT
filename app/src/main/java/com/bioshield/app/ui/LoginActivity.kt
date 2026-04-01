@@ -8,8 +8,12 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bioshield.app.databinding.ActivityLoginBinding
 import com.bioshield.app.viewmodel.BioShieldViewModel
 import com.google.android.material.snackbar.Snackbar
-import com.bioshield.app.ui.MainActivity
 class LoginActivity : AppCompatActivity() {
+
+    companion object {
+        const val EXTRA_ACCESS_TOKEN = "access_token"
+        const val EXTRA_USER_ID = "user_id"
+    }
 
     private lateinit var binding: ActivityLoginBinding
     private val viewModel: BioShieldViewModel by viewModels()
@@ -40,8 +44,12 @@ class LoginActivity : AppCompatActivity() {
 
         viewModel.loginResult.observe(this) { result ->
             showLoading(false)
-            result.onSuccess {
-                startActivity(Intent(this, MainActivity::class.java))
+            result.onSuccess { loginBody ->
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    putExtra(EXTRA_ACCESS_TOKEN, loginBody.token)
+                    putExtra(EXTRA_USER_ID, loginBody.userId.orEmpty())
+                }
+                startActivity(intent)
                 finish()
             }
             result.onFailure { error ->

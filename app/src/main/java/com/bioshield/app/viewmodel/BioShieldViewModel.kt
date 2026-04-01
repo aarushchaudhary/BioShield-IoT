@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bioshield.app.model.*
 import com.bioshield.app.network.RetrofitClient
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import retrofit2.Response
 
 class BioShieldViewModel : ViewModel() {
 
@@ -17,30 +19,35 @@ class BioShieldViewModel : ViewModel() {
     private val _loginResult = MutableLiveData<Result<LoginResponse>>()
     val loginResult: LiveData<Result<LoginResponse>> = _loginResult
 
-    private val _enrollResult = MutableLiveData<Result<EnrollResponse>>()
-    val enrollResult: LiveData<Result<EnrollResponse>> = _enrollResult
+    private val _enrollResult = MutableLiveData<Result<BiometricResponse>>()
+    val enrollResult: LiveData<Result<BiometricResponse>> = _enrollResult
 
     private val _verifyResult = MutableLiveData<Result<VerifyResponse>>()
     val verifyResult: LiveData<Result<VerifyResponse>> = _verifyResult
 
-    private val _cancelResult = MutableLiveData<Result<CancelResponse>>()
-    val cancelResult: LiveData<Result<CancelResponse>> = _cancelResult
+    private val _cancelResult = MutableLiveData<Result<BiometricResponse>>()
+    val cancelResult: LiveData<Result<BiometricResponse>> = _cancelResult
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api!!.login(LoginRequest(email, password))
+                val api = RetrofitClient.api
+                    ?: return@launch _loginResult.postValue(
+                        Result.failure(Exception("API not configured — set backend URL first"))
+                    )
+                val response = api.login(LoginRequest(email, password))
                 if (response.isSuccessful && response.body() != null) {
-                    token = response.body()!!.token
-                    userId = response.body()!!.userId ?: email
-                    _loginResult.value = Result.success(response.body()!!)
+                    val body = response.body()!!
+                    token = body.token
+                    userId = body.userId.orEmpty()
+                    _loginResult.postValue(Result.success(body))
                 } else {
-                    _loginResult.value = Result.failure(
-                        Exception("Login failed: ${response.code()}")
+                    _loginResult.postValue(
+                        Result.failure(Exception(httpErrorDetail(response) ?: "Login failed (${response.code()})"))
                     )
                 }
             } catch (e: Exception) {
-                _loginResult.value = Result.failure(e)
+                _loginResult.postValue(Result.failure(e))
             }
         }
     }
@@ -48,20 +55,25 @@ class BioShieldViewModel : ViewModel() {
     fun enroll(featureVector: List<Float>) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api!!.enroll(
+                val api = RetrofitClient.api
+                    ?: return@launch _enrollResult.postValue(
+                        Result.failure(Exception("API not configured"))
+                    )
+                val response = api.enroll(
                     "Bearer $token",
                     EnrollRequest(userId, featureVector)
                 )
                 if (response.isSuccessful && response.body() != null) {
-                    isEnrolled = true
-                    _enrollResult.value = Result.success(response.body()!!)
+                    val body = response.body()!!
+                    if (body.status == "success") isEnrolled = true
+                    _enrollResult.postValue(Result.success(body))
                 } else {
-                    _enrollResult.value = Result.failure(
-                        Exception("Enroll failed: ${response.code()}")
+                    _enrollResult.postValue(
+                        Result.failure(Exception(httpErrorDetail(response) ?: "Enroll failed (${response.code()})"))
                     )
                 }
             } catch (e: Exception) {
-                _enrollResult.value = Result.failure(e)
+                _enrollResult.postValue(Result.failure(e))
             }
         }
     }
@@ -69,19 +81,23 @@ class BioShieldViewModel : ViewModel() {
     fun verify(featureVector: List<Float>) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api!!.verify(
+                val api = RetrofitClient.api
+                    ?: return@launch _verifyResult.postValue(
+                        Result.failure(Exception("API not configured"))
+                    )
+                val response = api.verify(
                     "Bearer $token",
                     VerifyRequest(userId, featureVector)
                 )
                 if (response.isSuccessful && response.body() != null) {
-                    _verifyResult.value = Result.success(response.body()!!)
+                    _verifyResult.postValue(Result.success(response.body()!!))
                 } else {
-                    _verifyResult.value = Result.failure(
-                        Exception("Verify failed: ${response.code()}")
+                    _verifyResult.postValue(
+                        Result.failure(Exception(httpErrorDetail(response) ?: "Verify failed (${response.code()})"))
                     )
                 }
             } catch (e: Exception) {
-                _verifyResult.value = Result.failure(e)
+                _verifyResult.postValue(Result.failure(e))
             }
         }
     }
@@ -89,21 +105,40 @@ class BioShieldViewModel : ViewModel() {
     fun cancel() {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.api!!.cancel(
+                val api = RetrofitClient.api
+                    ?: return@launch _cancelResult.postValue(
+                        Result.failure(Exception("API not configured"))
+                    )
+                val response = api.cancel(
                     "Bearer $token",
                     CancelRequest(userId)
                 )
                 if (response.isSuccessful && response.body() != null) {
-                    isEnrolled = false
-                    _cancelResult.value = Result.success(response.body()!!)
+                    val body = response.body()!!
+                    if (body.status == "success") isEnrolled = false
+                    _cancelResult.postValue(Result.success(body))
                 } else {
-                    _cancelResult.value = Result.failure(
-                        Exception("Cancel failed: ${response.code()}")
+                    _cancelResult.postValue(
+                        Result.failure(Exception(httpErrorDetail(response) ?: "Cancel failed (${response.code()})"))
                     )
                 }
             } catch (e: Exception) {
-                _cancelResult.value = Result.failure(e)
+                _cancelResult.postValue(Result.failure(e))
             }
+        }
+    }
+
+    private fun httpErrorDetail(response: Response<*>): String? {
+        val raw = response.errorBody()?.string() ?: return null
+        return try {
+            val err = Gson().fromJson(raw, Map::class.java)
+            when (val d = err["detail"]) {
+                is String -> d
+                is List<*> -> d.joinToString { (it as? Map<*, *>)?.get("msg")?.toString().orEmpty() }
+                else -> raw
+            }
+        } catch (_: Exception) {
+            raw
         }
     }
 }

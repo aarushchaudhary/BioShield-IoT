@@ -12,35 +12,35 @@ data class LoginResponse(
     @com.google.gson.annotations.SerializedName("user_id") val userId: String?
 )
 
-// Enroll
+// Biometric — API uses `status` + `message` (see BiometricResponse / VerifyResponse schemas)
+data class BiometricResponse(
+    val status: String,
+    val message: String,
+    val biohash: String? = null
+)
+
 data class EnrollRequest(
     @com.google.gson.annotations.SerializedName("user_id") val userId: String,
     @com.google.gson.annotations.SerializedName("feature_vector") val featureVector: List<Float>
 )
 
-data class EnrollResponse(
-    val success: Boolean,
-    val message: String
-)
+typealias EnrollResponse = BiometricResponse
 
-// Verify
 data class VerifyRequest(
     @com.google.gson.annotations.SerializedName("user_id") val userId: String,
     @com.google.gson.annotations.SerializedName("feature_vector") val featureVector: List<Float>
 )
 
 data class VerifyResponse(
-    val success: Boolean,
+    val status: String,
     val message: String,
-    val matchScore: Float
+    val biohash: String? = null,
+    @com.google.gson.annotations.SerializedName("match_score") val matchScore: Float,
+    @com.google.gson.annotations.SerializedName("is_match") val isMatch: Boolean
 )
 
-// Cancel
 data class CancelRequest(
-    val userId: String
+    @com.google.gson.annotations.SerializedName("user_id") val userId: String
 )
 
-data class CancelResponse(
-    val success: Boolean,
-    val message: String
-)
+typealias CancelResponse = BiometricResponse

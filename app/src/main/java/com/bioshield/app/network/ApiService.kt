@@ -17,7 +17,7 @@ interface ApiService {
     suspend fun enroll(
         @Header("Authorization") token: String,
         @Body request: EnrollRequest
-    ): Response<EnrollResponse>
+    ): Response<BiometricResponse>
 
     @POST("biometric/verify")
     suspend fun verify(
@@ -29,5 +29,5 @@ interface ApiService {
     suspend fun cancel(
         @Header("Authorization") token: String,
         @Body request: CancelRequest
-    ): Response<CancelResponse>
+    ): Response<BiometricResponse>
 }
