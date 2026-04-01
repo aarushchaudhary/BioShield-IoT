@@ -45,7 +45,7 @@ class BioShieldViewModel : ViewModel() {
         }
     }
 
-    fun enroll(featureVector: String) {
+    fun enroll(featureVector: List<Float>) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.api!!.enroll(
@@ -66,7 +66,7 @@ class BioShieldViewModel : ViewModel() {
         }
     }
 
-    fun verify(featureVector: String) {
+    fun verify(featureVector: List<Float>) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.api!!.verify(
