@@ -1,16 +1,25 @@
-# React + Vite
+# BioShield Administrative Control Panel 💻
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The "Glass Box" security visualization web interface for the BioShield IoT Hackathon System. 
 
-Currently, two official plugins are available:
+Designed to operate seamlessly alongside the Python backend and Android fingerprint scanner, this dashboard acts as the nerve center for managing administrative policies, triggering real-time hardware workflows, and providing live visual proof of our mathematical cryptographic structures.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Key Features
+- **Real-Time IoT Triggering:** Utilize control-panel hooks to remotely activate "Enrollment" and "Verification" physical scanning sequences to any synced Android emulator directly over our Redis polling loop.
+- **Visual Proof Comparison:** Renders direct, comparative data between raw minutiae arrays and their irreversible binary counterparts post "BioHash" processing, acting as the ultimate demonstration piece for hackathon judges.
+- **Live Auditing:** Polls active system analytics to push live metrics detailing access tracking, approval structures, and mathematical threshold distances.
+- **Premium Aesthetics:** Constructed prioritizing rich, high-fidelity dark-mode typography frameworks, smooth transitions, and glassmorphism.
 
-## React Compiler
+## Tech Stack
+- **Framework:** React + TypeScript + Vite
+- **Styling:** Vanilla CSS & curated UI tokens 
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Running the Dashboard
+1. Ensure your backend `/bioshieldiotapi` instances are actively listening on `localhost:8000`.
+2. Navigate root to `/bioshieldiotweb`.
+3. Start the node server:
+```bash
+npm install
+npm run dev
+```
+Navigate to your local port host (typically `http://localhost:5173`) to view the application.
