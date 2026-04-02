@@ -12,7 +12,7 @@ object RetrofitClient {
     private var currentBaseUrl: String = ""
     
     // Token provider function that must be set before making authenticated requests
-    var tokenProvider: (() -> String)? = null
+    private var _tokenProvider: (() -> String)? = null
 
     fun updateBaseUrl(newUrl: String) {
         // Ensure URL ends with a trailing slash
@@ -38,7 +38,7 @@ object RetrofitClient {
         httpClientBuilder.addInterceptor(loggingInterceptor)
         
         // Add auth interceptor if token provider is available
-        tokenProvider?.let { provider ->
+        _tokenProvider?.let { provider ->
             httpClientBuilder.addInterceptor(AuthInterceptor(provider))
         }
         
@@ -55,7 +55,7 @@ object RetrofitClient {
     }
     
     fun setTokenProvider(provider: () -> String) {
-        tokenProvider = provider
+        _tokenProvider = provider
         // Rebuild retrofit to apply the new token provider
         if (currentBaseUrl.isNotEmpty()) {
             updateBaseUrl(currentBaseUrl)
