@@ -1,6 +1,7 @@
 package com.bioshield.app.ui
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
@@ -21,18 +22,33 @@ class MainActivity : AppCompatActivity() {
         private const val DEFAULT_API_URL = "http://10.0.2.2:8000/"  // Emulator default
         private const val DEFAULT_EMAIL = "test@example.com"
         private const val DEFAULT_PASSWORD = "password123"
+        private const val PREFS_NAME = "BioShieldPrefs"
+        private const val API_URL_KEY = "api_url"
     }
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: BioShieldViewModel by viewModels()
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize API URL (user can change via SharedPreferences or environment)
-        RetrofitClient.updateBaseUrl(DEFAULT_API_URL)
+        // Initialize SharedPreferences
+        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        
+        // Load saved API URL or use default
+        val savedApiUrl = sharedPreferences.getString(API_URL_KEY, DEFAULT_API_URL) ?: DEFAULT_API_URL
+        binding.etApiUrl.setText(savedApiUrl)
+        
+        // Initialize API URL with saved or default
+        RetrofitClient.updateBaseUrl(savedApiUrl)
+        
+        // Handle save URL button
+        binding.btnSaveUrl.setOnClickListener {
+            saveApiUrl()
+        }
         
         // Auto-login with default credentials
         viewModel.login(DEFAULT_EMAIL, DEFAULT_PASSWORD)
@@ -100,6 +116,36 @@ class MainActivity : AppCompatActivity() {
                 navigateToResult(false, error.message ?: "Cancel failed", null)
             }
         }
+    }
+    
+    private fun saveApiUrl() {
+        val url = binding.etApiUrl.text.toString().trim()
+        
+        if (url.isEmpty()) {
+            Snackbar.make(binding.root, "URL cannot be empty", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Basic URL validation
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            Snackbar.make(binding.root, "URL must start with http:// or https://", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Ensure URL ends with /
+        val finalUrl = if (url.endsWith("/")) url else "$url/"
+        binding.etApiUrl.setText(finalUrl)
+        
+        // Save to SharedPreferences
+        sharedPreferences.edit().putString(API_URL_KEY, finalUrl).apply()
+        
+        // Update RetrofitClient
+        RetrofitClient.updateBaseUrl(finalUrl)
+        
+        // Re-login with the new URL
+        viewModel.login(DEFAULT_EMAIL, DEFAULT_PASSWORD)
+        
+        Snackbar.make(binding.root, "API URL saved: $finalUrl", Snackbar.LENGTH_SHORT).show()
     }
 
     private fun showBiometricPrompt(subtitle: String, onSuccess: () -> Unit) {
