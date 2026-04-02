@@ -10,10 +10,18 @@ import androidx.core.content.ContextCompat
 import com.bioshield.app.BmpGenerator
 import com.bioshield.app.FingerprintHelper
 import com.bioshield.app.databinding.ActivityMainBinding
+import com.bioshield.app.network.RetrofitClient
 import com.bioshield.app.viewmodel.BioShieldViewModel
 import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        // Default credentials for demo
+        private const val DEFAULT_API_URL = "http://10.0.2.2:8000/"  // Emulator default
+        private const val DEFAULT_EMAIL = "test@example.com"
+        private const val DEFAULT_PASSWORD = "password123"
+    }
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: BioShieldViewModel by viewModels()
@@ -23,12 +31,26 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        intent.getStringExtra(LoginActivity.EXTRA_ACCESS_TOKEN)?.let { viewModel.token = it }
-        intent.getStringExtra(LoginActivity.EXTRA_USER_ID)?.let { viewModel.userId = it }
-
+        // Initialize API URL (user can change via SharedPreferences or environment)
+        RetrofitClient.updateBaseUrl(DEFAULT_API_URL)
+        
+        // Auto-login with default credentials
+        viewModel.login(DEFAULT_EMAIL, DEFAULT_PASSWORD)
+        
+        // Set default user ID
+        viewModel.userId = "demo-user"
         binding.tvUserId.text = "User: ${viewModel.userId}"
         updateStatus()
-
+        // Handle login response
+        viewModel.loginResult.observe(this) { result ->
+            result.onSuccess { loginBody ->
+                // Token is automatically set by viewModel.login()
+                Snackbar.make(binding.root, \"Logged in successfully\", Snackbar.LENGTH_SHORT).show()
+            }
+            result.onFailure { error ->
+                Snackbar.make(binding.root, \"Login failed: \${error.message}\", Snackbar.LENGTH_LONG).show()
+            }
+        }
         binding.cardEnroll.setOnClickListener {
             showBiometricPrompt("Enroll Fingerprint") { performEnroll() }
         }
