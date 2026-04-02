@@ -61,4 +61,14 @@ object RetrofitClient {
             updateBaseUrl(currentBaseUrl)
         }
     }
+    
+    fun getApiService(): ApiService {
+        if (api == null) {
+            // Initialize with default URL if not already done
+            if (currentBaseUrl.isEmpty()) {
+                updateBaseUrl("http://10.0.2.2:8000/")
+            }
+        }
+        return api ?: throw IllegalStateException("ApiService not initialized")
+    }
 }
