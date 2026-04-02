@@ -37,12 +37,17 @@ fi
 echo -e "${GREEN}✓ Your machine IP address: ${BLUE}$IP_ADDRESS${NC}"
 echo ""
 echo -e "${YELLOW}📱 For your phone:${NC}"
-echo -e "   ${BLUE}http://$IP_ADDRESS:8000/${NC}"
+echo -e "   ${BLUE}https://$IP_ADDRESS:8000/${NC}"
+echo ""
+echo -e "${GREEN}✓ Using HTTPS with self-signed certificate${NC}"
+echo -e "${YELLOW}⚠️  Certificate expires on: 2027-04-02${NC}"
 echo ""
 
 # Start the server
-echo -e "${YELLOW}🚀 Starting FastAPI server...${NC}"
-echo "   Server will listen on http://0.0.0.0:8000"
+echo -e "${YELLOW}🚀 Starting FastAPI server with HTTPS...${NC}"
+echo "   Server will listen on https://0.0.0.0:8000"
 echo ""
 
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload \
+  --ssl-keyfile certs/key.pem \
+  --ssl-certfile certs/cert.pem
