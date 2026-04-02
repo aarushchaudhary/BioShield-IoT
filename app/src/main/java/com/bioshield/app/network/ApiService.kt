@@ -1,6 +1,7 @@
 package com.bioshield.app.network
 
 import com.bioshield.app.model.*
+import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,6 +16,10 @@ interface ApiService {
 
     @GET("health")
     suspend fun health(): Response<Map<String, String>>
+    
+    // Synchronous version for connection testing
+    @GET("health")
+    fun healthSync(): Call<Map<String, String>>
 
     @POST("biometric/enroll")
     suspend fun enroll(

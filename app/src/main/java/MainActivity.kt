@@ -1,6 +1,7 @@
 package com.bioshield.app.ui
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
@@ -21,18 +22,38 @@ class MainActivity : AppCompatActivity() {
         private const val DEFAULT_API_URL = "http://10.0.2.2:8000/"  // Emulator default
         private const val DEFAULT_EMAIL = "test@example.com"
         private const val DEFAULT_PASSWORD = "password123"
+        private const val PREFS_NAME = "BioShieldPrefs"
+        private const val API_URL_KEY = "api_url"
     }
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: BioShieldViewModel by viewModels()
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize API URL (user can change via SharedPreferences or environment)
-        RetrofitClient.updateBaseUrl(DEFAULT_API_URL)
+        // Initialize SharedPreferences
+        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        
+        // Load saved API URL or use default
+        val savedApiUrl = sharedPreferences.getString(API_URL_KEY, DEFAULT_API_URL) ?: DEFAULT_API_URL
+        binding.etApiUrl.setText(savedApiUrl)
+        
+        // Initialize API URL with saved or default
+        RetrofitClient.updateBaseUrl(savedApiUrl)
+        
+        // Handle save URL button
+        binding.btnSaveUrl.setOnClickListener {
+            saveApiUrl()
+        }
+        
+        // Handle test connection button
+        binding.btnTestConnection.setOnClickListener {
+            testConnection()
+        }
         
         // Auto-login with default credentials
         viewModel.login(DEFAULT_EMAIL, DEFAULT_PASSWORD)
@@ -41,6 +62,9 @@ class MainActivity : AppCompatActivity() {
         viewModel.userId = "demo-user"
         binding.tvUserId.text = "User: ${viewModel.userId}"
         updateStatus()
+        
+        // Test connection on startup
+        testConnection()
         // Handle login response
         viewModel.loginResult.observe(this) { result ->
             result.onSuccess { loginBody ->
@@ -101,8 +125,89 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-    private fun showBiometricPrompt(subtitle: String, onSuccess: () -> Unit) {
+    
+    private fun saveApiUrl() {
+        val url = binding.etApiUrl.text.toString().trim()
+        
+        if (url.isEmpty()) {
+            Snackbar.make(binding.root, "URL cannot be empty", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Basic URL validation
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            Snackbar.make(binding.root, "URL must start with http:// or https://", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Ensure URL ends with /
+        val finalUrl = if (url.endsWith("/")) url else "$url/"
+        binding.etApiUrl.setText(finalUrl)
+        
+        // Save to SharedPreferences
+        sharedPreferences.edit().putString(API_URL_KEY, finalUrl).apply()
+        
+        // Update RetrofitClient
+        RetrofitClient.updateBaseUrl(finalUrl)
+        
+        // Re-login with the new URL
+        viewModel.login(DEFAULT_EMAIL, DEFAULT_PASSWORD)
+        
+        Snackbar.make(binding.root, "API URL saved: $finalUrl", Snackbar.LENGTH_SHORT).show()
+    }
+    
+    private fun testConnection() {
+        val url = binding.etApiUrl.text.toString().trim()
+        
+        if (url.isEmpty()) {
+            updateConnectionStatus(false, "URL not set")
+            return
+        }
+        
+        // Show testing status
+        binding.tvConnectionStatus.text = "TESTING..."
+        binding.tvConnectionStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_orange_light))
+        
+        // Launch a coroutine to test the connection
+        Thread {
+            try {
+                val testUrl = if (url.endsWith("/")) url else "$url/"
+                RetrofitClient.updateBaseUrl(testUrl)
+                
+                // Test with health endpoint using synchronous call
+                val api = RetrofitClient.getApiService()
+                val response = api.healthSync().execute()
+                
+                if (response.isSuccessful) {
+                    runOnUiThread {
+                        updateConnectionStatus(true, "CONNECTED")
+                    }
+                } else {
+                    runOnUiThread {
+                        updateConnectionStatus(false, "CONNECTION FAILED")
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    updateConnectionStatus(false, "ERROR: ${e.message?.take(20)}")
+                }
+            }
+        }.start()
+    }
+    
+    private fun updateConnectionStatus(isConnected: Boolean, statusText: String) {
+        if (isConnected) {
+            binding.tvConnectionStatus.text = statusText
+            binding.tvConnectionStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+            binding.connectionStatusDot.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+            Snackbar.make(binding.root, "✓ $statusText", Snackbar.LENGTH_SHORT).show()
+        } else {
+            binding.tvConnectionStatus.text = statusText
+            binding.tvConnectionStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
+            binding.connectionStatusDot.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
+            Snackbar.make(binding.root, "✗ $statusText", Snackbar.LENGTH_SHORT).show()
+        }
+    }
         val executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
