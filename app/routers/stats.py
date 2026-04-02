@@ -1,5 +1,8 @@
 import uuid
 import json
+import random
+import hashlib
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text, func
@@ -109,3 +112,137 @@ def visualize_template(user_id: uuid.UUID, db: Session = Depends(get_db)):
         original_minutiae=original_minutiae,
         template_biohash=t.biohash
     )
+
+
+def generate_mock_minutiae(count: int = 45) -> list:
+    """Generate mock fingerprint minutiae data for simulation."""
+    minutiae = []
+    for _ in range(count):
+        minutiae.append({
+            "x": random.randint(0, 512),
+            "y": random.randint(0, 512),
+            "angle": random.uniform(0, 360),
+            "type": random.choice(["loop", "whorl", "ridge", "valley"])
+        })
+    return minutiae
+
+
+def generate_mock_biohash(minutiae: list) -> str:
+    """Generate mock BioHash from minutiae data."""
+    data = json.dumps(minutiae, sort_keys=True)
+    return hashlib.sha256(data.encode()).hexdigest()
+
+
+@router.post("/simulate-enrollment/{user_id}")
+def simulate_enrollment(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Simulate a fingerprint enrollment with mock data - creates template and stores minutiae visualization."""
+    try:
+        # Get the user
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Generate mock minutiae
+        minutiae = generate_mock_minutiae()
+        biohash = generate_mock_biohash(minutiae)
+        
+        # Revoke any existing templates
+        existing_templates = db.query(Template).filter(
+            Template.user_id == user_id,
+            Template.status == TemplateStatus.active
+        ).all()
+        for t in existing_templates:
+            t.status = TemplateStatus.cancelled
+        
+        # Create new template
+        new_template = Template(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            biohash=biohash,
+            status=TemplateStatus.active,
+            created_at=datetime.utcnow()
+        )
+        db.add(new_template)
+        
+        # Create audit log for enrollment
+        audit_entry = AuditLog(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            action=AuditAction.enroll,
+            success=True,
+            match_score=0.95,
+            ip_address="127.0.0.1",
+            created_at=datetime.utcnow()
+        )
+        db.add(audit_entry)
+        
+        # Store minutiae visualization in Redis
+        r = get_redis()
+        r.setex(f"visualize:{user_id}", 3600, json.dumps(minutiae))
+        
+        db.commit()
+        
+        # Return data IMMEDIATELY without needing second fetch
+        return {
+            "status": "success",
+            "message": "Mock enrollment simulation completed",
+            "user_id": str(user_id),
+            "template_id": str(new_template.id),
+            "minutiae_count": len(minutiae),
+            "biohash": biohash,
+            "original_minutiae": minutiae,
+            "template_biohash": biohash
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Enrollment simulation failed: {str(e)}")
+
+
+@router.post("/simulate-verify/{user_id}")
+def simulate_verify(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Simulate a fingerprint verification with mock match score."""
+    try:
+        # Get the user and active template
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        template = db.query(Template).filter(
+            Template.user_id == user_id,
+            Template.status == TemplateStatus.active
+        ).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="No active template found. Enroll first using simulate-enrollment.")
+        
+        # Generate random match score (mostly success, some failures for realism)
+        success = random.random() > 0.1  # 90% success rate
+        match_score = random.uniform(0.7, 0.98) if success else random.uniform(0.2, 0.6)
+        
+        # Create audit log for verification
+        audit_entry = AuditLog(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            action=AuditAction.verify,
+            success=success,
+            match_score=match_score,
+            ip_address="127.0.0.1",
+            created_at=datetime.utcnow()
+        )
+        db.add(audit_entry)
+        db.commit()
+        
+        return {
+            "status": "success" if success else "verification_failed",
+            "message": "Verification successful" if success else "Fingerprint did not match",
+            "user_id": str(user_id),
+            "match_score": round(match_score, 4),
+            "threshold": 0.35,
+            "passed": success
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Verification simulation failed: {str(e)}")
