@@ -208,6 +208,8 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(binding.root, "✗ $statusText", Snackbar.LENGTH_SHORT).show()
         }
     }
+
+    private fun showBiometricPrompt(subtitle: String, onSuccess: () -> Unit) {
         val executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
