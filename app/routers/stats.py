@@ -76,9 +76,9 @@ def get_system_stats(db: Session = Depends(get_db)):
 @router.get("/simulate-breach", response_model=DatabaseDumpResponse)
 def simulate_database_breach(db: Session = Depends(get_db)):
     """Simulate a raw database extraction attack for judges to prove cryptographic security."""
-    users = db.query(User).limit(5).all()
-    templates = db.query(Template).limit(5).all()
-    keys = db.query(KeyVault).limit(5).all()
+    users = db.query(User).order_by(User.created_at.desc()).limit(5).all()
+    templates = db.query(Template).order_by(Template.created_at.desc()).limit(5).all()
+    keys = db.query(KeyVault).order_by(KeyVault.created_at.desc()).limit(5).all()
     
     users_dump = [{"id": str(u.id), "email": u.email, "hashed_password": u.hashed_password} for u in users]
     templates_dump = [{"id": str(t.id), "user_id": str(t.user_id), "biohash": t.biohash, "status": t.status.name} for t in templates]
