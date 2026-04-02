@@ -11,7 +11,8 @@ const getApiUrl = () => {
     // For local development, try localhost first
     return 'https://localhost:8000/';
   }
-  return 'https://localhost:8000/';
+  // Production: Use EC2 instance IP
+  return 'https://3.6.92.87:8000/';
 };
 
 export const getApiBaseUrl = () => getApiUrl();
