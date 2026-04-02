@@ -28,6 +28,11 @@
         <domain includeSubdomains="true">172</domain>
     </domain-config>
     
+    <!-- Production API server (self-signed certificate support) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">3.6.92.87</domain>
+    </domain-config>
+    
     <!-- All other domains require HTTPS (production) -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">example.com</domain>

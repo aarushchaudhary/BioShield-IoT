@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         // Default credentials for demo
-        private const val DEFAULT_API_URL = "https://10.0.2.2:8000/"  // Emulator default (HTTPS)
+        private const val DEFAULT_API_URL = "https://3.6.92.87:8000/"  // Production API server
         private const val DEFAULT_EMAIL = "test@example.com"
         private const val DEFAULT_PASSWORD = "password123"
         private const val PREFS_NAME = "BioShieldPrefs"

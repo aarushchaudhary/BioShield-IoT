@@ -26,9 +26,9 @@ class LoginActivity : AppCompatActivity() {
         binding.btnLogin.setOnClickListener {
             var ipAddress = binding.etIpAddress.text.toString().trim()
             if (ipAddress.isEmpty()) {
-                // Default for emulator
-                ipAddress = "http://10.0.2.2:8000/"
-                Snackbar.make(binding.root, "Using default address for emulator. For physical device, enter: http://<your-ip>:8000/", Snackbar.LENGTH_LONG).show()
+                // Default for production
+                ipAddress = "https://3.6.92.87:8000/"
+                Snackbar.make(binding.root, "Using default production API address.", Snackbar.LENGTH_LONG).show()
             } else if (!ipAddress.startsWith("http://") && !ipAddress.startsWith("https://")) {
                 // Help user format the URL correctly
                 ipAddress = "http://$ipAddress"
