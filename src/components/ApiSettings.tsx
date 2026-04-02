@@ -82,7 +82,7 @@ export const ApiSettings = ({ onUrlChange }: ApiSettingsProps) => {
   };
 
   const handleReset = () => {
-    const defaultUrl = 'https://localhost:8000/';
+    const defaultUrl = 'https://172.31.32.154:8000/';
     setApiUrl(defaultUrl);
     setApiBaseUrl(defaultUrl);
     setConnectionStatus('idle');
