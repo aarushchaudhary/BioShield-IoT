@@ -44,7 +44,7 @@ class BioShieldViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     token = body.token
-                    userId = body.userId.orEmpty()
+                    userId = body.userId
                     // Update the token provider so subsequent requests use the new token
                     RetrofitClient.setTokenProvider { token }
                     _loginResult.postValue(Result.success(body))

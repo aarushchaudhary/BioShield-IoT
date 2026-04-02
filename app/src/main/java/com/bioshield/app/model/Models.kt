@@ -11,7 +11,7 @@ data class LoginResponse(
     @com.google.gson.annotations.SerializedName("access_token") val token: String,
     @com.google.gson.annotations.SerializedName("token_type") val tokenType: String = "bearer",
     @com.google.gson.annotations.SerializedName("expires_in") val expiresIn: Int = 3600,
-    @com.google.gson.annotations.SerializedName("user_id") val userId: String?
+    @com.google.gson.annotations.SerializedName("user_id") val userId: String
 )
 
 // Biometric — API uses `status` + `message` (see BiometricResponse / VerifyResponse schemas)
