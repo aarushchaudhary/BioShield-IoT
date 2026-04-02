@@ -69,10 +69,10 @@ class MainActivity : AppCompatActivity() {
         viewModel.loginResult.observe(this) { result ->
             result.onSuccess { loginBody ->
                 // Token is automatically set by viewModel.login()
-                Snackbar.make(binding.root, \"Logged in successfully\", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, "Logged in successfully", Snackbar.LENGTH_SHORT).show()
             }
             result.onFailure { error ->
-                Snackbar.make(binding.root, \"Login failed: \${error.message}\", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "Login failed: ${error.message}", Snackbar.LENGTH_LONG).show()
             }
         }
         binding.cardEnroll.setOnClickListener {
@@ -208,6 +208,8 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(binding.root, "✗ $statusText", Snackbar.LENGTH_SHORT).show()
         }
     }
+
+    private fun showBiometricPrompt(subtitle: String, onSuccess: () -> Unit) {
         val executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
