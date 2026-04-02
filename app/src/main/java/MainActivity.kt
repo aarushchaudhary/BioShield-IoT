@@ -20,8 +20,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         // Default credentials for demo
         private const val DEFAULT_API_URL = "https://3.6.92.87:8000/"  // Production API server
-        private const val DEFAULT_EMAIL = "test@example.com"
-        private const val DEFAULT_PASSWORD = "password123"
+        private const val DEFAULT_EMAIL = "user@bioshield.io"
+        private const val DEFAULT_PASSWORD = "user123"
         private const val PREFS_NAME = "BioShieldPrefs"
         private const val API_URL_KEY = "api_url"
     }
