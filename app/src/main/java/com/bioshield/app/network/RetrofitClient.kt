@@ -54,6 +54,10 @@ object RetrofitClient {
         api = retrofit?.create(ApiService::class.java)
     }
     
+    fun getApiService(): ApiService {
+        return api ?: throw IllegalStateException("RetrofitClient not initialized. Call updateBaseUrl first.")
+    }
+    
     fun setTokenProvider(provider: () -> String) {
         _tokenProvider = provider
         // Rebuild retrofit to apply the new token provider
