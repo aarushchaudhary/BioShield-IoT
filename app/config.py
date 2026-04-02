@@ -37,7 +37,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, ge=1)
 
     # ── CORS ──────────────────────────────────────────────────────────
-    CORS_ORIGINS: str = "http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:*"
+    
+    # ── Server ────────────────────────────────────────────────────────
+    SERVER_HOST: str = "0.0.0.0"  # Listen on all interfaces
+    SERVER_PORT: int = 8000
 
     # ── Environment ───────────────────────────────────────────────────
     ENVIRONMENT: str = "development"
