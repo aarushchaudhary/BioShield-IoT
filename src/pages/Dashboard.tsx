@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import api from '../lib/api';
+import api, { loginAsSecurityOfficer } from '../lib/api';
+import { ApiSettings } from '../components/ApiSettings';
 import { 
   Fingerprint, Trash2, ShieldCheck, Binary, Smartphone, 
   RefreshCw, Activity, AlertCircle, Terminal, Siren, 
@@ -18,16 +19,36 @@ export const Dashboard = () => {
   const [proof, setProof] = useState<{ raw: number[], hash: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Metrics State
   const [stats, setStats] = useState<any>(null);
   const [threshold, setThreshold] = useState<number>(0.35);
   const [breachData, setBreachData] = useState<any>(null);
   const [simulating, setSimulating] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Initial Data Load
+  // Authentication & Initial Data Load
   useEffect(() => {
-    fetchStats();
+    const initializeDashboard = async () => {
+      // Authenticate as security officer
+      const authenticated = await loginAsSecurityOfficer();
+      setIsAuthenticated(authenticated);
+      
+      if (authenticated) {
+        fetchStats();
+      } else {
+        setError('Failed to authenticate with API. Check the API connection settings.');
+      }
+    };
+
+    initializeDashboard();
+    
+    // Auto-refresh stats every 5 seconds
+    const interval = setInterval(() => {
+      if (isAuthenticated) fetchStats();
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchStats = async () => {
@@ -39,6 +60,7 @@ export const Dashboard = () => {
 
       const res = await api.get('/stats');
       setStats(res.data);
+      setError(null);
 
       if (firstUserId) {
         try {
@@ -50,8 +72,13 @@ export const Dashboard = () => {
           // Normal if not enrolled
         }
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Failed to fetch stats:', err);
+      setError(`Failed to load dashboard: ${err.response?.data?.detail || err.message || 'Unknown error'}`);
+      // Set offline status if not already set
+      if (!stats) {
+        setStats({ db_status: 'offline', redis_status: 'offline' });
+      }
     }
   };
 
@@ -77,6 +104,28 @@ export const Dashboard = () => {
     }
   };
 
+  const handleSimulateEnrollment = async () => {
+    if (!demoUserId) {
+      setError("No valid test user loaded from DB.");
+      return;
+    }
+    setError(null);
+    setStatus('triggering_enroll');
+    try {
+      // Call simulate endpoint - it returns the data directly (NO SECOND FETCH!)
+      const response = await api.post(`/stats/simulate-enrollment/${demoUserId}`);
+      // Use the returned data immediately
+      setProof({ raw: response.data.original_minutiae, hash: response.data.template_biohash });
+      setHasTemplate(true);
+      setStatus('enrolled');
+      setSimulating(false);
+      fetchStats();
+    } catch (e: any) {
+      setError('Failed to simulate enrollment: ' + (e.response?.data?.detail || e.message));
+      setStatus('idle');
+      setSimulating(false);
+    }
+  };
 
   const handleTriggerVerification = async () => {
     if (!hasTemplate) return;
@@ -92,6 +141,22 @@ export const Dashboard = () => {
       setStatus('waiting_verify');
     } catch (e: any) {
       setError('Failed to trigger verification: ' + (e.response?.data?.detail || e.message));
+      setStatus('enrolled');
+    }
+  };
+
+  const handleSimulateVerification = async () => {
+    if (!hasTemplate) return;
+    setError(null);
+    setVerifyResult(null);
+    setStatus('triggering_verify');
+    try {
+      const response = await api.post(`/stats/simulate-verify/${demoUserId}`);
+      setVerifyResult(response.data.passed);
+      setStatus('enrolled');
+      fetchStats();
+    } catch (e: any) {
+      setError('Failed to simulate verification: ' + (e.response?.data?.detail || e.message));
       setStatus('enrolled');
     }
   };
@@ -184,10 +249,18 @@ export const Dashboard = () => {
             </h1>
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <StatusBadge icon={<Database className="w-4 h-4" />} label="PGSQL" status={stats?.db_status} />
           <StatusBadge icon={<Server className="w-4 h-4" />} label="REDIS" status={stats?.redis_status} />
           <StatusBadge icon={<Activity className="w-4 h-4" />} label="EDGE" status="online" />
+          <button 
+            onClick={fetchStats}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+            title="Refresh stats"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          <ApiSettings onUrlChange={fetchStats} />
         </div>
       </div>
 
@@ -213,19 +286,35 @@ export const Dashboard = () => {
             <div className="space-y-4 relative z-10">
               {!hasTemplate ? (
                 <>
-                  <button onClick={handleTriggerEnrollment} disabled={status !== 'idle'}
-                    className="w-full py-4 bg-gradient-to-r from-cyan-600/90 to-blue-700/90 border border-cyan-500/50 hover:border-cyan-400 rounded-xl font-bold flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(8,145,178,0.2)] hover:shadow-[0_0_30px_rgba(8,145,178,0.4)] disabled:opacity-50">
-                    {(status === 'triggering_enroll' || status === 'waiting_enroll') ? <Activity className="w-5 h-5 animate-spin" /> : <Fingerprint className="w-5 h-5" />}
-                    {status === 'triggering_enroll' ? 'Pinging...' : status === 'waiting_enroll' ? 'Awaiting Scan...' : 'Initiate Enrollment'}
-                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={handleTriggerEnrollment} disabled={status !== 'idle'}
+                      className="py-4 bg-gradient-to-r from-cyan-600/90 to-blue-700/90 border border-cyan-500/50 hover:border-cyan-400 rounded-xl font-bold flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(8,145,178,0.2)] hover:shadow-[0_0_30px_rgba(8,145,178,0.4)] disabled:opacity-50">
+                      {(status === 'triggering_enroll' || status === 'waiting_enroll') ? <Activity className="w-5 h-5 animate-spin" /> : <Fingerprint className="w-5 h-5" />}
+                      <span>{status === 'triggering_enroll' ? 'Pinging...' : status === 'waiting_enroll' ? 'Scanning...' : 'Device'}</span>
+                    </button>
+                    <button onClick={handleSimulateEnrollment} disabled={status !== 'idle'}
+                      className="py-4 bg-gradient-to-r from-purple-600/90 to-pink-700/90 border border-purple-500/50 hover:border-purple-400 rounded-xl font-bold flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] disabled:opacity-50 text-sm">
+                      <Fingerprint className="w-5 h-5" />
+                      <span>Simulate</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">Click Device to trigger physical scanner or Simulate for mock enrollment</p>
                 </>
               ) : (
                 <>
-                  <button onClick={handleTriggerVerification} disabled={status !== 'enrolled'}
-                    className="w-full py-4 bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-900/50 hover:border-emerald-500/50 rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50">
-                    {(status === 'triggering_verify' || status === 'waiting_verify') ? <Activity className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                    {status === 'triggering_verify' ? 'Pinging...' : status === 'waiting_verify' ? 'Awaiting Verify Scan...' : 'Run Verification'}
-                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={handleTriggerVerification} disabled={status !== 'enrolled'}
+                      className="py-4 bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-900/50 hover:border-emerald-500/50 rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50 text-sm">
+                      {(status === 'triggering_verify' || status === 'waiting_verify') ? <Activity className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                      <span>{status === 'triggering_verify' ? 'Pinging...' : status === 'waiting_verify' ? 'Scanning...' : 'Device'}</span>
+                    </button>
+                    <button onClick={handleSimulateVerification} disabled={status !== 'enrolled'}
+                      className="py-4 bg-violet-900/30 text-violet-400 border border-violet-500/30 hover:bg-violet-900/50 hover:border-violet-500/50 rounded-xl font-bold flex items-center justify-center gap-3 transition-all hover:shadow-[0_0_20px_rgba(139,92,246,0.2)] disabled:opacity-50 text-sm">
+                      {status === 'triggering_verify' || status === 'waiting_verify' ? <Activity className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                      <span>Simulate</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">Device: use physical scanner | Simulate: instant verification</p>
                   
                   {verifyResult !== null && (
                     <div className={`p-3 rounded-lg flex items-center justify-center gap-2 text-sm font-bold border ${verifyResult ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/50' : 'bg-rose-900/20 text-rose-400 border-rose-900/50'}`}>
