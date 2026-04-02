@@ -58,17 +58,15 @@ class MainActivity : AppCompatActivity() {
         // Auto-login with default credentials
         viewModel.login(DEFAULT_EMAIL, DEFAULT_PASSWORD)
         
-        // Set default user ID
-        viewModel.userId = "demo-user"
-        binding.tvUserId.text = "User: ${viewModel.userId}"
-        updateStatus()
-        
         // Test connection on startup
         testConnection()
         // Handle login response
         viewModel.loginResult.observe(this) { result ->
             result.onSuccess { loginBody ->
                 // Token is automatically set by viewModel.login()
+                // Update UI with the correct user ID from login response
+                binding.tvUserId.text = "User: ${viewModel.userId}"
+                updateStatus()
                 Snackbar.make(binding.root, "Logged in successfully", Snackbar.LENGTH_SHORT).show()
             }
             result.onFailure { error ->
