@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  /* You can add custom theme variables here */
+}
+
+body {
+  @apply bg-gray-950 text-gray-100;
+}
