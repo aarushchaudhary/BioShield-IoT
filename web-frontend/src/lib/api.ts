@@ -5,6 +5,11 @@ const getApiUrl = () => {
   const stored = localStorage.getItem('apiUrl');
   if (stored) return stored;
   
+  // Prefer environment variable if provided
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
   // Default URLs based on environment
   const isDevelopment = import.meta.env.DEV;
   if (isDevelopment) {
